@@ -8,12 +8,15 @@ datasource db {
 }
 
 model User {
-  id           String          @id @default(cuid())
-  username     String          @unique
-  passwordHash String
-  createdAt    DateTime        @default(now())
-  progress     UserProgress[]
-  settings     UserSettings[]
+  id              String          @id @default(cuid())
+  username        String          @unique
+  passwordHash    String
+  createdAt       DateTime        @default(now())
+  lastSingleId    String?         // 单选题最后做到哪一题
+  lastMultipleId  String?         // 多选题最后做到哪一题
+  lastJudgmentId  String?         // 判断题最后做到哪一题
+  progress        UserProgress[]
+  settings        UserSettings[]
 }
 
 model UserSettings {

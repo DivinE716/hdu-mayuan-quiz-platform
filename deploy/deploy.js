@@ -228,7 +228,10 @@ async function main() {
 
     console.log("2.2 打包 deploy.tar.gz...");
     execSync(
-      `${TAR_CMD} -czf ${DEPLOY_PACKAGE} --exclude='node_modules' --exclude='.git' --exclude='.next/cache' --exclude='deploy.tar.gz' src .next public prisma package.json package-lock.json next.config.ts tsconfig.json postcss.config.mjs eslint.config.mjs .env deploy/ecosystem.config.js`,
+      `${TAR_CMD} -czf ${DEPLOY_PACKAGE} ` +
+      `--exclude='node_modules' --exclude='.git' --exclude='.next/cache' --exclude='deploy.tar.gz' ` +
+      `--exclude='*.db' --exclude='*.db-journal' --exclude='*.db-wal' --exclude='*.db-shm' ` +
+      `src .next public prisma package.json package-lock.json next.config.ts tsconfig.json postcss.config.mjs eslint.config.mjs .env deploy/ecosystem.config.js`,
       { cwd: PROJECT_DIR, stdio: "inherit" }
     );
     const pkgSize = (statSync(path.join(PROJECT_DIR, DEPLOY_PACKAGE)).size / 1024 / 1024).toFixed(1);
@@ -252,10 +255,19 @@ async function main() {
     console.log("3.2 上传 Nginx 配置...");
     await sftpPut(conn, path.join(__dirname, "nginx.conf"), "/tmp/mayuan-quiz-nginx.conf");
 
-    // 解压
-    console.log("3.3 服务器端解压...");
+    // 备份数据库（部署前）
+    console.log("3.3 备份服务器数据库...");
     await sshExec(conn,
-      `rm -rf ${DEPLOY_DIR}/.next ${DEPLOY_DIR}/public ${DEPLOY_DIR}/prisma ${DEPLOY_DIR}/deploy && ` +
+      `if [ -f ${DEPLOY_DIR}/prisma/dev.db ]; then ` +
+      `cp ${DEPLOY_DIR}/prisma/dev.db ${DEPLOY_DIR}/prisma/dev.db.bak && echo '   已备份 dev.db → dev.db.bak'; ` +
+      `else echo '   无现有数据库，跳过备份'; fi`
+    );
+
+    // 解压
+    console.log("3.4 服务器端解压...");
+    await sshExec(conn,
+      `rm -rf ${DEPLOY_DIR}/.next ${DEPLOY_DIR}/public ${DEPLOY_DIR}/deploy && ` +
+      `rm -rf ${DEPLOY_DIR}/prisma/schema.prisma && ` +
       `tar -xzf /tmp/${DEPLOY_PACKAGE} -C ${DEPLOY_DIR}/ && ` +
       `rm -f /tmp/${DEPLOY_PACKAGE} && ` +
       `echo '解压完成'`
@@ -373,15 +385,40 @@ async function main() {
     }
 
     // ============================================================
-    // Step 7: 验证
+    // Step 7: 收尾配置
     // ============================================================
     console.log("\n" + "━".repeat(50));
-    console.log("✅ Step 7: 验证部署\n");
+    console.log("⚙ Step 7: 收尾配置\n");
 
-    console.log("7.1 PM2 状态:");
+    // 7.1 写入 ADMIN_TOKEN
+    const adminToken = env.ADMIN_TOKEN || "mayuan-admin-2026-secure";
+    console.log("7.1 配置 ADMIN_TOKEN...");
+    await sshExec(conn,
+      `cd ${DEPLOY_DIR} && ` +
+      `grep -q 'ADMIN_TOKEN' .env 2>/dev/null && ` +
+      `sed -i 's/^ADMIN_TOKEN=.*/ADMIN_TOKEN=${adminToken}/' .env || ` +
+      `echo 'ADMIN_TOKEN=${adminToken}' >> .env && ` +
+      `echo '   ADMIN_TOKEN 已配置'`
+    );
+
+    // 7.2 清理 Nginx 代理缓存
+    console.log("7.2 清理 Nginx 代理缓存...");
+    await sshExec(conn, "rm -rf /www/server/nginx/proxy_cache_dir/* 2>/dev/null; echo '   缓存已清理'");
+
+    // 7.3 重启 PM2
+    console.log("7.3 重启 PM2 使新代码生效...");
+    await sshExec(conn, "pm2 restart mayuan-quiz 2>&1");
+
+    // ============================================================
+    // Step 8: 验证
+    // ============================================================
+    console.log("\n" + "━".repeat(50));
+    console.log("✅ Step 8: 验证部署\n");
+
+    console.log("8.1 PM2 状态:");
     await sshExec(conn, "pm2 status 2>&1");
 
-    console.log("\n7.2 服务端口检测:");
+    console.log("\n8.2 服务端口检测:");
     const portCheck = await sshExec(conn,
       `curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:${PORT}/ 2>&1 || echo 'FAIL'`,
       { print: false }
@@ -401,7 +438,9 @@ async function main() {
     console.log("🎉 部署完成！");
     console.log("═".repeat(50));
     console.log("");
-    console.log(`  🌍 访问地址: http://${SERVER_IP}`);
+    console.log(`  🌍 刷题平台: http://${SERVER_IP}`);
+    console.log(`  🔐 管理后台: http://${SERVER_IP}/admin-dashboard`);
+    console.log(`     Token: ${env.ADMIN_TOKEN || "mayuan-admin-2026-secure"}`);
     console.log("");
     console.log("  📋 常用命令 (SSH 到服务器后):");
     console.log("     pm2 status              查看状态");

@@ -135,6 +135,21 @@ export async function apiGetStats(): Promise<ApiResponse<StatsData>> {
   );
 }
 
+// ---- 刷题位置（题型接续） ----
+
+export async function apiGetLastPosition(type: string): Promise<string | null> {
+  return authFetch(`/api/progress/position?type=${encodeURIComponent(type)}`)
+    .then((r) => r.json())
+    .then((d) => (d.success ? d.data.lastId : null));
+}
+
+export async function apiSaveLastPosition(type: string, questionId: string): Promise<void> {
+  await authFetch("/api/progress/position", {
+    method: "POST",
+    body: JSON.stringify({ type, questionId }),
+  });
+}
+
 // ---- Settings (跨端位置同步) ----
 
 export async function apiGetSetting(key: string): Promise<string | null> {
