@@ -41,6 +41,8 @@ deploy-src.tar.gz
 # database (contains user data — DO NOT COMMIT)
 *.db
 *.db-journal
+*.db-wal
+*.db-shm
 
 # vercel
 .vercel
