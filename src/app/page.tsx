@@ -1,65 +1,105 @@
-import Image from "next/image";
+"use client";
 
-export default function Home() {
+import { useState, useEffect } from "react";
+import ModuleCard from "@/components/ModuleCard";
+import Navbar from "@/components/Navbar";
+import { apiGetStats, StatsData } from "@/lib/api";
+
+const defaultStats: StatsData = {
+  totalQuestions: 1146,
+  attemptedCount: 0,
+  masteredCount: 0,
+  wrongCount: 0,
+  favoriteCount: 0,
+  accuracy: 0,
+};
+
+export default function HomePage() {
+  const [stats, setStats] = useState<StatsData>(defaultStats);
+
+  useEffect(() => {
+    // 只有已登录用户才请求统计数据（localStorage 中有 user 说明之前登录过）
+    let hasUser = false;
+    try {
+      hasUser = !!localStorage.getItem("mayuan_user");
+    } catch { /* ignore */ }
+
+    if (!hasUser) return; // 未登录，直接使用 defaultStats，不发 API 请求
+
+    let cancelled = false;
+    apiGetStats()
+      .then((res) => {
+        if (!cancelled && res.success && res.data) {
+          setStats(res.data);
+        }
+      })
+      .catch(() => { /* 静默 */ });
+    return () => { cancelled = true; };
+  }, []);
+
+  const progressPercent =
+    stats.totalQuestions > 0
+      ? Math.round((stats.attemptedCount / stats.totalQuestions) * 100)
+      : 0;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
+    <div className="min-h-screen bg-morandi-bg">
+      <Navbar />
+
+      <main className="max-w-2xl mx-auto px-4 py-8 space-y-8">
+        {/* ====== 学习进度面板 ====== */}
+        <section className="bg-morandi-surface rounded-2xl p-5 shadow-sm border border-morandi-muted/60">
+          <h2 className="text-base font-semibold text-morandi-text-main mb-4">
+            学习进度
+          </h2>
+
+          <div className="mb-4">
+            <div className="flex justify-between text-sm mb-1.5">
+              <span className="text-morandi-text-soft">总进度</span>
+              <span className="text-morandi-primary font-medium">
+                {stats.attemptedCount} / {stats.totalQuestions}
+              </span>
+            </div>
+            <div className="h-2 bg-morandi-muted/40 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-morandi-primary rounded-full transition-all duration-700"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <StatItem label="正确率" value={`${stats.accuracy}%`} colorClass="text-morandi-success" />
+            <StatItem label="已掌握" value={stats.masteredCount} colorClass="text-morandi-primary" />
+            <StatItem label="错题本" value={stats.wrongCount} colorClass="text-morandi-danger" />
+            <StatItem label="收藏夹" value={stats.favoriteCount} colorClass="text-morandi-accent" />
+          </div>
+        </section>
+
+        {/* ====== 刷题模块入口 ====== */}
+        <section>
+          <h2 className="text-base font-semibold text-morandi-text-main mb-3">
+            选择刷题模式
+          </h2>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            <ModuleCard title="单选题" subtitle="夯实基础知识" count={441} href="/practice?type=single" icon="📝" colorClass="bg-morandi-primary/15 text-morandi-primary" />
+            <ModuleCard title="多选题" subtitle="辨析易混概念" count={282} href="/practice?type=multiple" icon="📋" colorClass="bg-morandi-secondary/30 text-morandi-text-main" />
+            <ModuleCard title="判断题" subtitle="快速查漏补缺" count={423} href="/practice?type=judge" icon="✅" colorClass="bg-morandi-success/15 text-morandi-success" />
+            <ModuleCard title="错题本" subtitle="消灭所有错题" count={stats.wrongCount} href="/practice?filter=wrong" icon="🎯" colorClass="bg-morandi-danger/10 text-morandi-danger" />
+            <ModuleCard title="收藏夹" subtitle="重温重点题" count={stats.favoriteCount} href="/practice?filter=favorite" icon="⭐" colorClass="bg-morandi-accent/15 text-morandi-accent" />
+            <ModuleCard title="全部题目" subtitle="随机顺序挑战" count={1146} href="/practice" icon="🔄" colorClass="bg-morandi-muted/30 text-morandi-text-main" />
+          </div>
+        </section>
       </main>
+    </div>
+  );
+}
+
+function StatItem({ label, value, colorClass }: { label: string; value: string | number; colorClass: string }) {
+  return (
+    <div className="text-center p-3 rounded-xl bg-morandi-bg/70">
+      <div className={`text-xl font-bold ${colorClass}`}>{value}</div>
+      <div className="text-xs text-morandi-text-soft mt-0.5">{label}</div>
     </div>
   );
 }

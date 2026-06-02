@@ -32,6 +32,15 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.deploy.example
+
+# deployment
+deploy.tar.gz
+deploy-src.tar.gz
+
+# database (contains user data — DO NOT COMMIT)
+*.db
+*.db-journal
 
 # vercel
 .vercel

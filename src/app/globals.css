@@ -1,26 +1,51 @@
 @import "tailwindcss";
 
+/* ============================================
+   Morandi（莫兰迪）柔和护眼主题色
+   ============================================
+   Giorgio Morandi 画作风格：低饱和度、柔和灰调
+   - background:  浅灰绿   #E8EDE8  → 柔光底色
+   - surface:     暖白灰   #F5F2ED  → 卡片/面板底色
+   - primary:     柔和蓝灰 #8B9DAF  → 主色调/按钮
+   - secondary:   灰豆绿   #B5C1B4  → 辅助色/标签
+   - accent:      灰粉     #C4A8A8  → 强调色/收藏
+   - muted:       暖灰     #C8C3BB  → 分割线/弱化元素
+   - text-main:   深棕灰   #3D3A3A  → 主文字
+   - text-soft:   灰褐     #6B6767  → 辅助文字
+   - success:     灰绿     #9DB0A0  → 正确/已掌握
+   - danger:      灰红     #C09B9B  → 错误/警告
+   ============================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --color-morandi-bg: #E8EDE8;
+  --color-morandi-surface: #F5F2ED;
+  --color-morandi-primary: #8B9DAF;
+  --color-morandi-secondary: #B5C1B4;
+  --color-morandi-accent: #C4A8A8;
+  --color-morandi-muted: #C8C3BB;
+  --color-morandi-text-main: #3D3A3A;
+  --color-morandi-text-soft: #6B6767;
+  --color-morandi-success: #9DB0A0;
+  --color-morandi-danger: #C09B9B;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  --color-morandi-bg: var(--color-morandi-bg);
+  --color-morandi-surface: var(--color-morandi-surface);
+  --color-morandi-primary: var(--color-morandi-primary);
+  --color-morandi-secondary: var(--color-morandi-secondary);
+  --color-morandi-accent: var(--color-morandi-accent);
+  --color-morandi-muted: var(--color-morandi-muted);
+  --color-morandi-text-main: var(--color-morandi-text-main);
+  --color-morandi-text-soft: var(--color-morandi-text-soft);
+  --color-morandi-success: var(--color-morandi-success);
+  --color-morandi-danger: var(--color-morandi-danger);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--color-morandi-bg);
+  color: var(--color-morandi-text-main);
   font-family: Arial, Helvetica, sans-serif;
 }
